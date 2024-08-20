@@ -1,0 +1,74 @@
+import hashlib
+import time
+
+class Block:
+    def _init_(self, index, timestamp, data, previous_hash):
+        self.index = index
+        self.timestamp = timestamp
+        self.data = data
+        self.previous_hash = previous_hash
+        self.hash = self.calculate_hash()
+
+    def calculate_hash(self):
+        block_string = f"{self.index}{self.timestamp}{self.data}{self.previous_hash}"
+        return hashlib.sha256(block_string.encode()).hexdigest()
+
+class Blockchain:
+    def _init_(self):
+        self.chain = [self.create_genesis_block()]
+        self.bids = []  # To store bid prices
+
+    def create_genesis_block(self):
+        return Block(0, time.time(), "Genesis Block", "0")
+
+    def get_latest_block(self):
+        return self.chain[-1]
+
+    def add_block(self, data):
+        new_block = Block(len(self.chain), time.time(), data, self.get_latest_block().hash)
+        self.chain.append(new_block)
+        if "bid_price" in data:
+            self.bids.append(data["bid_price"])  # Store the bid price
+
+    def is_chain_valid(self):
+        for i in range(1, len(self.chain)):
+            current_block = self.chain[i]
+            previous_block = self.chain[i - 1]
+
+            if current_block.hash != current_block.calculate_hash():
+                return False
+
+            if current_block.previous_hash != previous_block.hash:
+                return False
+
+        return True
+
+    def get_minimum_bid(self):
+        if not self.bids:
+            return None  # No bids available
+        return min(self.bids)
+
+# Example usage
+auction_chain = Blockchain()
+
+# Add bids
+auction_chain.add_block({"item": "Painting", "bid_price": 1500, "bidder": "Alice"})
+auction_chain.add_block({"item": "Painting", "bid_price": 1400, "bidder": "Bob"})
+auction_chain.add_block({"item": "Painting", "bid_price": 1600, "bidder": "Charlie"})
+
+# Check if the blockchain is valid
+print("Is blockchain valid?", auction_chain.is_chain_valid())
+
+# Print the blockchain
+for block in auction_chain.chain:
+    print(f"Block {block.index} [Hash: {block.hash}]")
+    print(f"Timestamp: {block.timestamp}")
+    print(f"Data: {block.data}")
+    print(f"Previous Hash: {block.previous_hash}\n")
+
+# Print the minimum bid price
+min_bid = auction_chain.get_minimum_bid()
+if min_bid is not None:
+    print(f"The minimum bid price is: ${min_bid}")
+else:
+    print("No bids available.")
